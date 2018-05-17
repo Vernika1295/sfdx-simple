@@ -1,4 +1,7 @@
-    def HUB_ORG=env.HUB_ORG
+#!groovy
+import groovy.json.JsonSlurperClassic
+
+def HUB_ORG=env.HUB_ORG
     def SFDC_HOST = env.SFDC_HOST
     def JWT_KEY_CRED_ID = env.JWT_KEY_CRED_ID
     def CONNECTED_APP_CONSUMER_KEY = env.CONNECTED_APP_CONSUMER_KEY
