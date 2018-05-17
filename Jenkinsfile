@@ -35,9 +35,9 @@ def HUB_ORG=env.HUB_ORG
         checkout scm
     }
     
-   stage('Example') {
-		echo "Running ${env.BUILD_ID} on ${env.JENKINS_URL}"
-	}
+ //  stage('Example') {
+	//	echo "Running ${env.BUILD_ID} on ${env.JENKINS_URL}"
+	//}
 		
 	withCredentials([file(credentialsId: JWT_KEY_CRED_ID, variable: 'jwt_key_file')]) {
         stage('Create Scratch Org') {
