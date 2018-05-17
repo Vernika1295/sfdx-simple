@@ -3509,4 +3509,3 @@ public abstract class CredentialsProvider extends Descriptor<CredentialsProvider
     }
 
 }
-
