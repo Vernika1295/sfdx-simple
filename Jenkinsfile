@@ -9,6 +9,7 @@ node{
     def RUN_ARTIFACT_DIR="tests/${BUILD_NUMBER}"
 
     def SFDC_USERNAME
+    def workspace
 
  
 
@@ -25,7 +26,11 @@ node{
     def toolbelt = tool 'toolbelt'
 
  
-
+stage('checkout') {
+            checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '32062537', url: 'https://github.com/Vernika1295/sfdx-simple']]])
+         workspace = pwd()
+       
+ 
     stage('checkout source') {
 
         // when running in multi-branch job, one must issue this command
@@ -34,7 +39,9 @@ node{
 
     }
 
- 
+
+
+        
 
     withCredentials([file(credentialsId: JWT_KEY_CRED_ID, variable: 'jwt_key_file')]) {
 
