@@ -19,8 +19,7 @@ def HUB_ORG=env.HUB_ORG
         stage('Static Code Analysis') {
         
                 echo 'Testing..'
-            }
-        
+            }        
         stage('Deploy') {
     
                 echo 'Deploying....'
