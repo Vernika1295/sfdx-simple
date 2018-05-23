@@ -1,5 +1,12 @@
 #!groovy
 import groovy.json.JsonSlurperClassic
+ pipeline {
+    agent any
+    environment {
+        // Removed other variables for clarity...
+        SFDX_USE_GENERIC_UNIX_KEYCHAIN = true
+        // ...
+    }
 node {
     def BUILD_NUMBER = env.BUILD_NUMBER
     def RUN_ARTIFACT_DIR = "tests/${BUILD_NUMBER}"
@@ -10,13 +17,7 @@ node {
     def CONNECTED_APP_CONSUMER_KEY = env.CONNECTED_APP_CONSUMER_KEY_DH
     def toolbelt = tool 'toolbelt'
 
-   pipeline {
-    agent any
-    environment {
-        // Removed other variables for clarity...
-        SFDX_USE_GENERIC_UNIX_KEYCHAIN = true
-        // ...
-    }
+  
     stages {    
         stage('TEST') {
             steps {
