@@ -4,12 +4,12 @@ node {
 
     def SERIAL = System.currentTimeMillis()
     def BRANCH = ${env.BRANCH_NAME}.replaceAll(/[\/\\]/, '')
-    def BUILD_NUMBER=env.BUILD_NUMBER
+    def BUILD_NUMBER=${env.BUILD_NUMBER}
     def RUN_ARTIFACT_DIR="tests/${BUILD_NUMBER}"
-    def SFDC_USERNAME="ci-${BRANCH}-${SERIAL}-pr@dhci.com"
-    def CONNECTED_APP_CALLBACK_URL=env.CONNECTED_APP_CALLBACK_URL
-    def SIGN_UP_EMAIL=env.SIGN_UP_EMAIL
-    def API_VERSION=env.API_VERSION
+    def SFDC_USERNAME="ci-${BRANCH}-${SERIAL}-vernika@irketa.com"
+    def CONNECTED_APP_CALLBACK_URL=${env.CONNECTED_APP_CALLBACK_URL}
+    def SIGN_UP_EMAIL=${env.SIGN_UP_EMAIL}
+    def API_VERSION=${env.API_VERSION}
 
         // Hard coding until pete can repair the damage
     // def HUB_ORG=env.HUB_ORG_DH
