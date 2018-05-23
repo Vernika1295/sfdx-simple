@@ -4,7 +4,13 @@ import groovy.json.JsonSlurperClassic
 
 def workspace
 
-def BUILD_NUMBER=env.BUILD_NUMBER
+
+
+
+node
+{
+    
+    def BUILD_NUMBER=env.BUILD_NUMBER
 
     def RUN_ARTIFACT_DIR="tests/${BUILD_NUMBER}"
 
@@ -22,11 +28,9 @@ def BUILD_NUMBER=env.BUILD_NUMBER
 
  
 
-    def toolbelt = tool 'toolbelt'
-
-
-node
-{
+    def toolbelt = tool 'toolbelt
+    
+    
         stage('checkout') {
             checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '32062537', url: 'https://github.com/Vernika1295/sfdx-simple']]])
          workspace = pwd()
