@@ -1,6 +1,11 @@
-#!groovy
-import groovy.json.JsonSlurperClassic
-node {
+pipeline {
+    agent any
+    environment {
+        // Removed other variables for clarity...
+        SFDX_USE_GENERIC_UNIX_KEYCHAIN = true
+        // ...
+    }
+    node {
 def BUILD_NUMBER = env.BUILD_NUMBER
     def RUN_ARTIFACT_DIR = "tests/${BUILD_NUMBER}"
     def SFDC_USERNAME
@@ -9,13 +14,6 @@ def BUILD_NUMBER = env.BUILD_NUMBER
     def JWT_KEY_CRED_ID = env.JWT_CRED_ID_DH
     def CONNECTED_APP_CONSUMER_KEY = env.CONNECTED_APP_CONSUMER_KEY_DH
     def toolbelt = tool 'toolbelt'
-pipeline {
-    agent any
-    environment {
-        // Removed other variables for clarity...
-        SFDX_USE_GENERIC_UNIX_KEYCHAIN = true
-        // ...
-    }
     stages {    
         stage('TEST') {
             steps {
