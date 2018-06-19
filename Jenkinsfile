@@ -1,32 +1,19 @@
 #!groovy
-import hudson.model.*
-import hudson.EnvVars
 import groovy.json.JsonSlurperClassic
-import groovy.json.JsonBuilder
-import groovy.json.JsonOutput
-import java.net.URL
-import groovy.json.JsonSlurperClassic
+def shell(command) {
+    return bat(returnStdout: true, script: "sh -x -c \"${command}\"").trim()
+}
+
 node {
 
-    def SERIAL = System.currentTimeMillis()
-    def BRANCH = ${env.BRANCH_NAME}.replaceAll(/[\/\\]/, '')
-    def BUILD_NUMBER=${env.BUILD_NUMBER}
+    def BUILD_NUMBER=env.BUILD_NUMBER
     def RUN_ARTIFACT_DIR="tests/${BUILD_NUMBER}"
-    def SFDC_USERNAME="ci-${BRANCH}-${SERIAL}-vernika@irketa.com"
-    def CONNECTED_APP_CALLBACK_URL=${env.CONNECTED_APP_CALLBACK_URL}
-    def SIGN_UP_EMAIL=${env.SIGN_UP_EMAIL}
-    def API_VERSION=${env.API_VERSION}
+    def SFDC_USERNAME
 
-        // Hard coding until pete can repair the damage
-    // def HUB_ORG=env.HUB_ORG_DH
-    // def HUB_KEY=env.HUB_KEY_FILE_PATH
-    // def SFDC_HOST = env.SFDC_HOST
-    // def CONNECTED_APP_CONSUMER_KEY=env.CONNECTED_APP_CONSUMER_KEY
-    def HUB_ORG="vernika@irketa.com"
-    def HUB_KEY="jenkins/server_adcxgs0hub.my.salesforce.com.key"
-    def SFDC_HOST="https://adcxgs0hub.my.salesforce.com"
-    def CONNECTED_APP_CONSUMER_KEY="3MVG9d8..z.hDcPL49w5EnCz_y2ceXPgIXUjla7BCf4dW0AneDcsMXCTyNsc4i4CkC6d3shzTRY3ZTFZ_KlDj"
-
+    def HUB_ORG=env.HUB_ORG_DH
+    def SFDC_HOST = env.SFDC_HOST_DH
+    def JWT_KEY_CRED_ID = env.JWT_CRED_ID_DH
+    def CONNECTED_APP_CONSUMER_KEY=env.CONNECTED_APP_CONSUMER_KEY_DH
     def toolbelt = tool 'toolbelt'
 
     stage('checkout source') {
@@ -34,45 +21,47 @@ node {
         checkout scm
     }
 
-    stage('Create Scratch Org') {
+    withCredentials([file(credentialsId: JWT_KEY_CRED_ID, variable: 'jwt_key_file')]) {
+        stage('Create Scratch Org') {
+            rc = bat (returnStatus: true, script: "${toolbelt}/sfdx force:auth:jwt:grant --clientid ${CONNECTED_APP_CONSUMER_KEY} --username ${HUB_ORG} --jwtkeyfile ${jwt_key_file} --setdefaultdevhubusername --instanceurl ${SFDC_HOST}")
+            if (rc != 0) { error 'hub org authorization failed' }
 
-        rc = sh returnStatus: true, script: "${toolbelt}/sfdx force:org:authorize -i ${CONNECTED_APP_CONSUMER_KEY} -u ${HUB_ORG} -f ${HUB_KEY} -y debug"
-        if (rc != 0) { error 'hub org authorization failed' }
-
-        // need to pull out assigned username 
-        rmsg = sh returnStdout: true, script: "${toolbelt}/sfdx force:org:create -f config/workspace-scratch-def.json -j -t test -y debug"
-        printf rmsg
-        def jsonSlurper = new JsonSlurperClassic()
-        def robj = jsonSlurper.parseText(rmsg)
-        if (robj.status != "ok") { error 'org creation failed: ' + robj.message }
-        SFDC_USERNAME=robj.username
-        robj = null
-        
-    }
-
-    stage('Push To Test Org') {
-        rc = sh returnStatus: true, script: "${toolbelt}/sfdx force:src:push --all --username ${SFDC_USERNAME} -y debug"
-        if (rc != 0) {
-            error 'push all failed'
+            // need to pull out assigned username
+            rmsg = bat returnStdout: true, script: "${toolbelt}/sfdx force:org:create --definitionfile config/project-scratch-def.json --json --setdefaultusername"
+            SFDC_USERNAME=rmsg.split('username":"')[1].replace('}','').replace('"','')
         }
-        // assign permset
-        rc = sh returnStatus: true, script: "${toolbelt}/sfdx force:permset:assign --username ${SFDC_USERNAME} --name DreamHouse -y debug"
-        if (rc != 0) {
-            error 'push all failed'
-        }
-    }
 
-    stage('Run Apex Test') {
-        sh "mkdir -p ${RUN_ARTIFACT_DIR}"
-        timeout(time: 120, unit: 'SECONDS') {
-            rc = sh returnStatus: true, script: "${toolbelt}/sfdx force:apex:test --testlevel RunLocalTests --outputdir ${RUN_ARTIFACT_DIR} --reporter tap --username ${SFDC_USERNAME} -y debug"
+        stage('Delete scratch org') {
+            rc = bat returnStatus: true, script: "sfdx force:org:delete -u ${SFDC_USERNAME}"
             if (rc != 0) {
-                error 'apex test run failed'
+                error 'Delete scratch org failed'
             }
         }
-    }
+        
+        stage('Push To Test Org') {
+            rc = bat returnStatus: true, script: "${toolbelt}/sfdx force:source:push --targetusername ${SFDC_USERNAME}"
+            if (rc != 0) {
+                error 'push failed'
+            }
+            // assign permset
+            rc = bat returnStatus: true, script: "${toolbelt}/sfdx force:user:permset:assign --targetusername ${SFDC_USERNAME} --permsetname DreamHouse"
+            if (rc != 0) {
+                error 'permset:assign failed'
+            }
+        }
+        
+        stage('Run Apex Test') {
+            sh "mkdir -p ${RUN_ARTIFACT_DIR}"
+            timeout(time: 120, unit: 'SECONDS') {
+                rc = sh returnStatus: true, script: "${toolbelt}/sfdx force:apex:test:run --testlevel RunLocalTests --outputdir ${RUN_ARTIFACT_DIR} --resultformat tap --targetusername ${SFDC_USERNAME}"
+                if (rc != 0) {
+                    error 'apex test run failed'
+                }
+            }
+        }
 
-    stage('collect results') {
-        junit keepLongStdio: true, testResults: 'tests/**/*-junit.xml'
+        stage('collect results') {
+            junit keepLongStdio: true, testResults: 'tests/**/*-junit.xml'
+        }
     }
 }
